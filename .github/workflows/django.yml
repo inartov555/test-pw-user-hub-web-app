@@ -4,12 +4,12 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "test-pw-user-hub-web-app/**"
+      - "**"
       - ".github/workflows/django.yml"
   pull_request:
     branches: [ "main" ]
     paths:
-      - "test-pw-user-hub-web-app/**"
+      - "**"
       - ".github/workflows/django.yml"
 
 jobs:
@@ -19,9 +19,10 @@ jobs:
       matrix:
         python-version: ["3.12"]
 
-    # Make the repo code importable: add the subfolder to PYTHONPATH
     env:
-      PYTHONPATH: test-pw-user-hub-web-app:.
+      PYTHONPATH: .            # make repo importable
+      SECRET_KEY: ci-not-secret
+      DEBUG: "0"
 
     steps:
       - name: Checkout
@@ -33,8 +34,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: |
-            test-pw-user-hub-web-app/requirements.txt
             requirements.txt
+            requirements-dev.txt
             pyproject.toml
 
       - name: Install dependencies
@@ -42,72 +43,44 @@ jobs:
           set -euo pipefail
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then
-            echo "Installing root requirements.txt"
             pip install -r requirements.txt
-          elif [ -f test-pw-user-hub-web-app/requirements.txt ]; then
-            echo "Installing app requirements.txt"
-            pip install -r test-pw-user-hub-web-app/requirements.txt
+          elif [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
           elif [ -f pyproject.toml ]; then
-            echo "Installing from pyproject.toml"
             pip install .
           else
-            echo "::error::No dependency manifest found"; exit 1
+            echo "::error::No dependency manifest found (requirements*.txt or pyproject.toml)"; exit 1
           fi
-          # Prove Django can be imported, even if we won't run it
-          python - <<'PY'
-import importlib.util, sys
-PY
+          python -c "import sys; print('Python', sys.version)"
+          python -c "import importlib.util,sys; print('Django present?:', bool(importlib.util.find_spec('django')))"
 
       - name: Detect Django settings module
         id: detect
         shell: bash
         run: |
           set -euo pipefail
-          # look for settings.py that looks like Django (has INSTALLED_APPS)
-          CANDIDATE="$(grep -rl --include='settings.py' 'INSTALLED_APPS' test-pw-user-hub-web-app || true | head -n1)"
+          # Find a settings.py that looks like Django (contains INSTALLED_APPS)
+          CANDIDATE="$(grep -rl --include='settings.py' 'INSTALLED_APPS' . | head -n1 || true)"
           if [ -z "${CANDIDATE:-}" ]; then
             echo "has_settings=false" >> "$GITHUB_OUTPUT"
             echo "No Django settings module found (no settings.py with INSTALLED_APPS)."
             exit 0
           fi
-          # convert path like test-pw-user-hub-web-app/config/settings.py -> config.settings
-          MOD="$(python - <<PY
-import sys, pathlib
-p = pathlib.Path("${CANDIDATE}")
-pkg = ".".join(p.with_suffix("").parts)
-# strip the leading 'test-pw-user-hub-web-app.' part
-parts = pkg.split(".")
-if parts[0] == "test-pw-user-hub-web-app":
-    parts = parts[1:]
-print(".".join(parts))
-PY
-)"
-          echo "Detected Django settings module: ${MOD}"
+          # Convert file path -> module path (e.g., config/settings.py -> config.settings)
+          MOD="$(python -c "import pathlib; p=pathlib.Path('${CANDIDATE}'); print('.'.join(p.with_suffix('').parts))")"
+          echo "Detected settings: ${MOD}"
           echo "DJANGO_SETTINGS_MODULE=${MOD}" >> "$GITHUB_ENV"
           echo "has_settings=true" >> "$GITHUB_OUTPUT"
 
-      - name: Verify settings import (only if found)
+      - name: Verify settings import
         if: steps.detect.outputs.has_settings == 'true'
         run: |
-          python - <<'PY'
-import os, importlib, traceback
-mod = os.environ["DJANGO_SETTINGS_MODULE"]
-print("DJANGO_SETTINGS_MODULE =", mod)
-try:
-    importlib.import_module(mod)
-    print("Imported OK")
-except Exception as e:
-    print("Settings import failed:", e)
-    traceback.print_exc()
-    raise
-PY
+          python -c "import os,importlib,traceback; m=os.environ['DJANGO_SETTINGS_MODULE']; print('DJANGO_SETTINGS_MODULE =', m); importlib.import_module(m); print('Imported OK')"
 
       - name: Django system checks
         if: steps.detect.outputs.has_settings == 'true'
         env:
           DJANGO_SETTINGS_MODULE: ${{ env.DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ci-not-secret
-          DEBUG: "0"
         run: |
           python -m django --version
           python -m django check --deploy -v 2
@@ -116,8 +89,6 @@ PY
         if: steps.detect.outputs.has_settings == 'true'
         env:
           DJANGO_SETTINGS_MODULE: ${{ env.DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ci-not-secret
-          DEBUG: "0"
         run: |
           python -m django makemigrations --check --dry-run
 
@@ -125,30 +96,15 @@ PY
         if: steps.detect.outputs.has_settings == 'true'
         env:
           DJANGO_SETTINGS_MODULE: ${{ env.DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ci-not-secret
-          DEBUG: "0"
         run: |
           python -m django migrate --noinput
 
       - name: Run tests
-        # Always run tests; prefer pytest if available (this repo is Playwright+pytest)
         run: |
-          if python - <<'PY'
-import importlib.util, sys
-sys.exit(0 if importlib.util.find_spec("pytest") else 1)
-PY
-          then
+          if python -c "import importlib.util; import sys; sys.exit(0 if importlib.util.find_spec('pytest') else 1)"; then
             pytest -q
+          elif [ "${{ steps.detect.outputs.has_settings }}" = "true" ]; then
+            python -m django test --noinput -v 2
           else
-            if [ "${{ steps.detect.outputs.has_settings }}" = "true" ]; then
-              python -m django test --noinput -v 2
-            else
-              echo "pytest not installed and no Django settings; nothing to run."
-              exit 0
-            fi
+            echo "No pytest and no Django settings detected; nothing to run."; exit 0
           fi
-
-      - name: Skip note (no Django settings found)
-        if: steps.detect.outputs.has_settings != 'true'
-        run: |
-          echo "No Django settings module in this repo; skipped django check/migrations by design."
