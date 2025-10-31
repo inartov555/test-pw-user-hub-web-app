@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from playwright.sync_api import Page, expect
 
+from .components.toast import Toast
+from .components.header import Header
+
 
 class BasePage:
     """Base class for all page objects."""
@@ -36,12 +39,10 @@ class BasePage:
         """
         Return the Toast component helper bound to this page.
         """
-        from .components.toast import Toast
         return Toast(self.page)
 
     def header(self):
         """
         Return the Header component helper bound to this page.
         """
-        from .components.header import Header
         return Header(self.page)

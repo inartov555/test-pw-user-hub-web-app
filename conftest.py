@@ -14,8 +14,6 @@ from config.settings import settings
 from utils.time_travel import install_time_travel, advance_minutes
 from utils.test_data import USERS
 from pages.login_page import LoginPage
-from config.settings import settings
-from utils.time_travel import advance_minutes
 
 
 ARTIFACTS = pathlib.Path(".artifacts")
