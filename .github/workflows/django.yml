@@ -31,6 +31,14 @@ jobs:
       matrix:
         python-version: ["3.12"]
 
+    env:
+      # make the repo importable (so "import config.settings" works)
+      PYTHONPATH: .
+      # minimal env so Django can boot
+      DJANGO_SETTINGS_MODULE: config.settings
+      SECRET_KEY: ci-not-secret
+      DEBUG: "0"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,6 +50,7 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
+            requirements-dev.txt
             pyproject.toml
 
       - name: Install dependencies
@@ -52,42 +61,44 @@ jobs:
           elif [ -f requirements-dev.txt ]; then
             pip install -r requirements-dev.txt
           else
-            echo "No requirements.txt found; attempting install from pyproject if possible"
+            echo "No requirements*.txt found; attempting install from pyproject if possible"
             if [ -f pyproject.toml ]; then pip install . || true; fi
           fi
 
+      - name: Verify Django is installed
+        run: |
+          python - <<'PY'
+import importlib.util, sys
+sys.exit(0 if importlib.util.find_spec("django") else 1)
+PY
+      - name: Verify settings import
+        run: |
+          python - <<'PY'
+import os
+mod = os.environ.get("DJANGO_SETTINGS_MODULE", "config.settings")
+print("DJANGO_SETTINGS_MODULE =", mod)
+__import__(mod)
+print("Imported", mod, "OK")
+PY
+
       # Use Django's module runner (no manage.py needed)
       - name: Django system checks
-        env:
-          DJANGO_SETTINGS_MODULE: config.settings
-          SECRET_KEY: ci-not-secret
-          DEBUG: "0"
         run: |
           python -m django --version
           python -m django check --deploy -v 2
 
       - name: Check for missing migrations
-        env:
-          DJANGO_SETTINGS_MODULE: config.settings
-          SECRET_KEY: ci-not-secret
-          DEBUG: "0"
         run: |
           python -m django makemigrations --check --dry-run
 
-      - name: Migrate DB
-        env:
-          DJANGO_SETTINGS_MODULE: config.settings
-          SECRET_KEY: ci-not-secret
-          DEBUG: "0"
+      - name: Migrate DB (SQLite default)
         run: |
+          # If your settings require DB env vars, set them here or ensure they default to SQLite.
           python -m django migrate --noinput
 
       - name: Run tests
-        env:
-          DJANGO_SETTINGS_MODULE: config.settings
-          SECRET_KEY: ci-not-secret
-          DEBUG: "0"
         run: |
+          # Prefer pytest if available (pytest-django will pick up DJANGO_SETTINGS_MODULE)
           if python - <<'PY'
 import importlib.util, sys
 sys.exit(0 if importlib.util.find_spec("pytest") else 1)
