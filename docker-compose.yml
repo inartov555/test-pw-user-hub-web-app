@@ -4,7 +4,7 @@ services:
     build: { context: ., dockerfile: Dockerfile }
     working_dir: /tests
     environment:
-      PYTHONPATH: "/test:/test"
+      PYTHONPATH: /tests
       HOST_ARTIFACTS: $HOST_ARTIFACTS
       BASE_URL: "http://localhost:5173"
     volumes:

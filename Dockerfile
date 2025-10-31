@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/playwright/python:v1.48.0-jammy
 # Saner Python & pip defaults
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
 
 WORKDIR /tests
 

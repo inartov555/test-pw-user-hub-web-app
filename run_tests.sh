@@ -25,12 +25,12 @@ echo "Building images..."
 case "$clear_cache" in
   true)
     echo "Cache will be cleared when starting the service"
-    docker compose build --no-cache
+    docker compose build tests --no-cache
     ;;
   *)
     echo "Cache will be preserved when starting the service"
-    docker compose build
+    docker compose build tests
 esac
 
 echo "Starting the tests..."
-docker compose run --rm tests bash -l
+docker compose run --rm tests bash -lc "pytest -q tests"
