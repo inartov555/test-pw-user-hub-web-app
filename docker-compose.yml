@@ -1,11 +1,15 @@
 services:
   tests:
+    image: test-pw-user-hub-web-app-tests
     build: { context: ., dockerfile: Dockerfile }
+    working_dir: /tests
     environment:
+      PYTHONPATH: "/test:/test"
       HOST_ARTIFACTS: $HOST_ARTIFACTS
       BASE_URL: "http://localhost:5173"
     volumes:
-      - ./:/app
+      - .:/tests
       - $HOST_ARTIFACTS:$HOST_ARTIFACTS
+      - ./:/workspace/artifacts
     network_mode: host
     command: bash -lc "pytest -q"

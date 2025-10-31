@@ -32,5 +32,5 @@ case "$clear_cache" in
     docker compose build
 esac
 
-echo "Starting the service"
-docker compose up
+echo "Starting the tests..."
+docker compose run --rm tests bash -l
