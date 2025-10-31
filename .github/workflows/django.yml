@@ -53,6 +53,11 @@ jobs:
           fi
           python -c "import sys; print('Python', sys.version)"
           python -c "import importlib.util,sys; print('Django present?:', bool(importlib.util.find_spec('django')))"
+  
+      - name: Install Playwright browsers (+ Linux deps)
+        run: |
+          python -m playwright install
+          python -m playwright install-deps  # Ubuntu/Debian runners
 
       - name: Detect Django settings module
         id: detect
