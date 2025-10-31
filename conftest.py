@@ -1,5 +1,5 @@
 """
-conftest.py
+pytest configuration & Playwright fixtures for E2E tests.
 """
 
 from __future__ import annotations
@@ -25,6 +25,9 @@ STATE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _launch(pw, name: str) -> Browser:
+    """
+    Launch a browser engine by name with the configured headless setting.
+    """
     headless = settings.headless
     if name == "chromium":
         return pw.chromium.launch(headless=headless)
@@ -38,7 +41,7 @@ def _launch(pw, name: str) -> Browser:
 @pytest.fixture(name="browser", params=BROWSERS, scope="session")
 def browser_fixture(request) -> Generator[Browser, None, None]:
     """
-    Session-scoped browser for each engine; all three in parallel via xdist.
+    Session-scoped Playwright Browser for each engine (runs in parallel with xdist).
     """
     with sync_playwright() as pw:
         br = _launch(pw, request.param)
@@ -49,7 +52,7 @@ def browser_fixture(request) -> Generator[Browser, None, None]:
 @pytest.fixture(name="context")
 def context_fixture(browser: Browser, request) -> Generator[BrowserContext, None, None]:
     """
-    Fresh context per test to ensure isolation.
+    Fresh BrowserContext per test for isolation and video capture.
     """
     ctx = browser.new_context(record_video_dir=str(ARTIFACTS / "videos"))
     yield ctx
@@ -59,7 +62,7 @@ def context_fixture(browser: Browser, request) -> Generator[BrowserContext, None
 @pytest.fixture(name="page")
 def page_fixture(context: BrowserContext) -> Generator[Page, None, None]:
     """
-    Provide an authenticated Playwright page.
+    Blank Playwright Page with time-travel shim installed.
     """
     page = context.new_page()
     install_time_travel(page)
@@ -69,16 +72,22 @@ def page_fixture(context: BrowserContext) -> Generator[Page, None, None]:
 @pytest.fixture(name="base_url", scope="session")
 def base_url_fixture() -> str:
     """
-    Base URL under test.
+    Application base URL under test (stripped of trailing slash).
     """
     return settings.base_url.rstrip("/")
 
 
 def _state_file(username: str) -> pathlib.Path:
+    """
+    Return the path to the persisted storage state file for a username.
+    """
     return STATE_DIR / f"{username}.json"
 
 
 def _perform_login(page: Page, base_url: str, username: str, password: str) -> None:
+    """
+    Log in via the UI and leave the authenticated state in the context.
+    """
     lp = LoginPage(page, base_url)
     lp.open()
     lp.login(username, password)
@@ -86,18 +95,24 @@ def _perform_login(page: Page, base_url: str, username: str, password: str) -> N
 
 @pytest.fixture(name="storage_state_regular1", scope="session")
 def storage_state_regular1_fixture(browser: Browser, base_url: str) -> str:
+    """
+    Create/reuse persisted storage state for regular1 and return its file path.
+    """
     state = _state_file("test1")
     if not state.exists():
-        ctx = browser.new_context()
-        p = ctx.new_page()
-        _perform_login(p, base_url, USERS["regular1"]["username"], USERS["regular1"]["password"])
-        ctx.storage_state(path=str(state))
-        ctx.close()
+      ctx = browser.new_context()
+      p = ctx.new_page()
+      _perform_login(p, base_url, USERS["regular1"]["username"], USERS["regular1"]["password"])
+      ctx.storage_state(path=str(state))
+      ctx.close()
     return str(state)
 
 
 @pytest.fixture(scope="session")
 def storage_state_regular2(browser: Browser, base_url: str) -> str:
+    """
+    Create/reuse persisted storage state for regular2 and return its file path.
+    """
     state = _state_file("test28")
     if not state.exists():
         ctx = browser.new_context()
@@ -110,6 +125,9 @@ def storage_state_regular2(browser: Browser, base_url: str) -> str:
 
 @pytest.fixture(name="storage_state_admin", scope="session")
 def storage_state_admin_fixture(browser: Browser, base_url: str) -> str:
+    """
+    Create/reuse persisted storage state for admin and return its file path.
+    """
     state = _state_file("admin")
     if not state.exists():
         ctx = browser.new_context()
@@ -122,6 +140,9 @@ def storage_state_admin_fixture(browser: Browser, base_url: str) -> str:
 
 @pytest.fixture()
 def logged_in_regular1(browser: Browser, storage_state_regular1: str) -> Generator[Page, None, None]:
+    """
+    Provide a Page already authenticated as regular1.
+    """
     ctx = browser.new_context(storage_state=storage_state_regular1)
     page = ctx.new_page()
     install_time_travel(page)
@@ -131,6 +152,9 @@ def logged_in_regular1(browser: Browser, storage_state_regular1: str) -> Generat
 
 @pytest.fixture()
 def logged_in_admin(browser: Browser, storage_state_admin: str) -> Generator[Page, None, None]:
+    """
+    Provide a Page already authenticated as admin.
+    """
     ctx = browser.new_context(storage_state=storage_state_admin)
     page = ctx.new_page()
     install_time_travel(page)
@@ -141,7 +165,7 @@ def logged_in_admin(browser: Browser, storage_state_admin: str) -> Generator[Pag
 @pytest.fixture()
 def expire_session(page: Page):
     """
-    Advance the logical time beyond SESSION_MINUTES to force expiry.
+    Advance logical time beyond SESSION_MINUTES to force auth expiry.
     """
     def _go():
         advance_minutes(page, settings.session_minutes + 1)
@@ -151,7 +175,7 @@ def expire_session(page: Page):
 @pytest.fixture()
 def logout(page: Page):
     """
-    UI logout via header component, when visible.
+    UI logout via the header component, ignoring missing controls.
     """
     from pages.base_page import BasePage
     b = BasePage(page)
