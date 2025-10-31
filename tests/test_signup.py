@@ -1,3 +1,7 @@
+"""
+End-to-end sign-up flows and validation tests using Playwright + pytest.
+"""
+
 from __future__ import annotations
 import time
 
@@ -11,7 +15,9 @@ from utils.test_data import VALIDATION, USERS
 
 @pytest.mark.regression
 def test_signup_happy_path_then_login(base_url, page):
-    """User can register and then log in with new credentials."""
+    """
+    User can register and then log in with new credentials.
+    """
     sp = SignupPage(page, base_url)
     sp.open()
     uid = str(int(time.time()))
@@ -25,15 +31,28 @@ def test_signup_happy_path_then_login(base_url, page):
         lp.login(uname, "StrongPassw0rd!")
         expect(page).to_have_url(lambda u: "/users" in u or "/dashboard" in u)
 
-@pytest.mark.parametrize("username,email,password,confirm,expected", [
-    ("", "", "", "", "Username"),
-    ("newguy", "not-an-email", "StrongPassw0rd!", "StrongPassw0rd!", "email"),
-    ("newguy2", "guy2@example.com", "short", "short", VALIDATION["password_strength"]),
-    (USERS["regular1"]["username"], "taken@example.com", "StrongPassw0rd!", "StrongPassw0rd!", VALIDATION["username_taken"]),
-    ("mismatch", "mismatch@example.com", "StrongPassw0rd!", "Different1!", "match"),
-])
+
+@pytest.mark.parametrize(
+    "username,email,password,confirm,expected",
+    [
+        ("", "", "", "", "Username"),
+        ("newguy", "not-an-email", "StrongPassw0rd!", "StrongPassw0rd!", "email"),
+        ("newguy2", "guy2@example.com", "short", "short", VALIDATION["password_strength"]),
+        (
+            USERS["regular1"]["username"],
+            "taken@example.com",
+            "StrongPassw0rd!",
+            "StrongPassw0rd!",
+            VALIDATION["username_taken"],
+        ),
+        ("mismatch", "mismatch@example.com", "StrongPassw0rd!", "Different1!", "match"),
+    ],
+)
 @pytest.mark.regression
 def test_signup_validation(base_url, page, username, email, password, confirm, expected):
+    """
+    Shows validation errors for empty/invalid fields and mismatched credentials.
+    """
     sp = SignupPage(page, base_url)
     sp.open()
     sp.register(username, email, password, confirm)

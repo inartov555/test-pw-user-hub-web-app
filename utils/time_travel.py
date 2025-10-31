@@ -1,3 +1,7 @@
+"""
+Playwright time-travel helpers that shim `Date.now()` for deterministic tests.
+"""
+
 from __future__ import annotations
 
 from playwright.sync_api import Page
@@ -13,11 +17,14 @@ INIT_SCRIPT = """
 """
 
 def install_time_travel(page: Page) -> None:
-    """Inject a Date.now shim and helper onto the page."""
+    """
+    Inject a Date.now shim and helper onto the page.
+    """
     page.add_init_script(INIT_SCRIPT)
 
 def advance_minutes(page: Page, minutes: int) -> None:
-    """Advance the logical clock by N minutes.
+    """
+    Advance the logical clock by N minutes.
 
     Requires `install_time_travel` to have been called earlier in the test/fixture.
     """

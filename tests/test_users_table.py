@@ -1,3 +1,7 @@
+"""
+Users table E2E tests covering visibility, access, search, sorting, and logout.
+"""
+
 from __future__ import annotations
 
 import pytest
@@ -8,14 +12,20 @@ from pages.users_table_page import UsersTablePage
 
 @pytest.mark.smoke
 def test_users_table_visible_for_logged_in_user(base_url, logged_in_regular1):
+    """
+    Logged-in user can open /users and see the table render.
+    """
     page = logged_in_regular1
     ut = UsersTablePage(page, base_url)
     ut.open()
     ut.expect_loaded()
 
+
 @pytest.mark.access
 def test_users_table_admin_has_controls(base_url, logged_in_admin):
-    """Admin should see extra actions (create/edit/delete) if present."""
+    """
+    Admin should see extra actions (create/edit/delete) if present.
+    """
     page = logged_in_admin
     ut = UsersTablePage(page, base_url)
     ut.open()
@@ -25,8 +35,12 @@ def test_users_table_admin_has_controls(base_url, logged_in_admin):
         if btn.count() > 0:
             expect(btn.first).to_be_visible()
 
+
 @pytest.mark.regression
 def test_users_table_search_filters_rows(base_url, logged_in_regular1):
+    """
+    Typing in the search box filters rows (if search is available).
+    """
     page = logged_in_regular1
     ut = UsersTablePage(page, base_url)
     ut.open()
@@ -36,8 +50,12 @@ def test_users_table_search_filters_rows(base_url, logged_in_regular1):
     if ut.search.count() > 0:
         assert ut.rows.count() <= initial
 
+
 @pytest.mark.regression
 def test_users_table_sorting_by_username_if_available(base_url, logged_in_regular1):
+    """
+    Clicking the 'Username' header toggles sort order (if column exists).
+    """
     page = logged_in_regular1
     ut = UsersTablePage(page, base_url)
     ut.open()
@@ -48,8 +66,12 @@ def test_users_table_sorting_by_username_if_available(base_url, logged_in_regula
     if before and after and before != after:
         assert True
 
+
 @pytest.mark.smoke
 def test_logout_via_header_returns_to_login(base_url, logged_in_regular1):
+    """
+    Logging out via the header returns the user to /login.
+    """
     page = logged_in_regular1
     ut = UsersTablePage(page, base_url)
     ut.open()

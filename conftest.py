@@ -1,3 +1,7 @@
+"""
+conftest.py
+"""
+
 from __future__ import annotations
 import os
 import pathlib
@@ -9,6 +13,9 @@ from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page
 from config.settings import settings
 from utils.time_travel import install_time_travel, advance_minutes
 from utils.test_data import USERS
+from pages.login_page import LoginPage
+from config.settings import settings
+from utils.time_travel import advance_minutes
 
 
 ARTIFACTS = pathlib.Path(".artifacts")
@@ -31,8 +38,8 @@ def _launch(pw, name: str) -> Browser:
     raise ValueError(name)
 
 
-@pytest.fixture(params=BROWSERS, scope="session")
-def browser(request) -> Generator[Browser, None, None]:
+@pytest.fixture(name="browser", params=BROWSERS, scope="session")
+def browser_fixture(request) -> Generator[Browser, None, None]:
     """
     Session-scoped browser for each engine; all three in parallel via xdist.
     """
@@ -42,8 +49,8 @@ def browser(request) -> Generator[Browser, None, None]:
         br.close()
 
 
-@pytest.fixture()
-def context(browser: Browser, request) -> Generator[BrowserContext, None, None]:
+@pytest.fixture(name="context")
+def context_fixture(browser: Browser, request) -> Generator[BrowserContext, None, None]:
     """
     Fresh context per test to ensure isolation.
     """
@@ -52,8 +59,11 @@ def context(browser: Browser, request) -> Generator[BrowserContext, None, None]:
     ctx.close()
 
 
-@pytest.fixture()
-def page(context: BrowserContext) -> Generator[Page, None, None]:
+@pytest.fixture(name="page")
+def page_fixture(context: BrowserContext) -> Generator[Page, None, None]:
+    """
+    Getting a new page
+    """
     page = context.new_page()
     install_time_travel(page)
     yield page
@@ -72,7 +82,6 @@ def _state_file(username: str) -> pathlib.Path:
 
 
 def _perform_login(page: Page, base_url: str, username: str, password: str) -> None:
-    from pages.login_page import LoginPage
     lp = LoginPage(page, base_url)
     lp.open()
     lp.login(username, password)
@@ -138,8 +147,6 @@ def expire_session(page: Page):
     Advance the logical time beyond SESSION_MINUTES to force expiry.
     """
     def _go():
-        from config.settings import settings
-        from utils.time_travel import advance_minutes
         advance_minutes(page, settings.session_minutes + 1)
     return _go
 
