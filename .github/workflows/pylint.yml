@@ -21,7 +21,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
         cache-dependency-path: |
-            ./requirements.txt
+            requirements.txt
+            pyproject.toml
 
     - name: Install dependencies
       run: |
@@ -31,10 +32,10 @@ jobs:
 
     - name: Analysing the code with pylint-django
       env:
-        DJANGO_SETTINGS_MODULE: core.settings
+        DJANGO_SETTINGS_MODULE: config.settings
         PYTHONPATH: .
       run: |
-        APP_FILES="$(git ls-files '*.py' | grep -vE '(^|/)(venv|\.venv)/|/migrations/')" || true
+        APP_FILES="$(git ls-files '*.py' | grep -vE '(^|/)(venv|\.venv)/')" || true
         if [ -n "$APP_FILES" ]; then
           pylint \
             --load-plugins=pylint_django \
