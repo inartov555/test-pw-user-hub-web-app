@@ -13,6 +13,7 @@ from config.settings import settings
 from utils.time_travel import install_time_travel, advance_minutes
 from utils.test_data import USERS
 from pages.login_page import LoginPage
+from pages.base_page import BasePage
 
 
 ARTIFACTS = pathlib.Path(".artifacts")
@@ -100,11 +101,11 @@ def storage_state_regular1_fixture(browser: Browser, base_url: str) -> str:
     """
     state = _state_file("test1")
     if not state.exists():
-      ctx = browser.new_context()
-      p = ctx.new_page()
-      _perform_login(p, base_url, USERS["regular1"]["username"], USERS["regular1"]["password"])
-      ctx.storage_state(path=str(state))
-      ctx.close()
+        ctx = browser.new_context()
+        p = ctx.new_page()
+        _perform_login(p, base_url, USERS["regular1"]["username"], USERS["regular1"]["password"])
+        ctx.storage_state(path=str(state))
+        ctx.close()
     return str(state)
 
 
@@ -177,7 +178,6 @@ def logout(page: Page):
     """
     UI logout via the header component, ignoring missing controls.
     """
-    from pages.base_page import BasePage
     b = BasePage(page)
     def _go():
         try:
