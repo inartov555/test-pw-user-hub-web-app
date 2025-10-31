@@ -5,14 +5,16 @@ pytest configuration & Playwright fixtures for E2E tests.
 from __future__ import annotations
 import pathlib
 from typing import Generator
+import os
 
 import pytest
 from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page
 
 from config.settings import settings
 from utils.time_travel import install_time_travel, advance_minutes
-from utils.temp_encr import decrypt
+# from utils.temp_encr import decrypt
 from utils.logger.logger import Logger
+from utils.file_utils import FileUtils
 from utils.test_data import USERS
 from pages.login_page import LoginPage
 from pages.base_page import BasePage
@@ -76,7 +78,7 @@ def browser_fixture(request) -> Generator[Browser, None, None]:
 
 
 @pytest.fixture(name="context")
-def context_fixture(browser: Browser, request) -> Generator[BrowserContext, None, None]:
+def context_fixture(browser: Browser) -> Generator[BrowserContext, None, None]:
     """
     Fresh BrowserContext per test for isolation and video capture.
     """
