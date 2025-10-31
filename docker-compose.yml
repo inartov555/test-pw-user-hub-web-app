@@ -1,13 +1,11 @@
 services:
   tests:
-    network_mode: host
-
-  test_framework:
-    build: { context: ., dockerfile: backend/Dockerfile }
+    build: { context: ., dockerfile: Dockerfile }
     environment:
       HOST_ARTIFACTS: $HOST_ARTIFACTS
+      BASE_URL: "http://localhost:5173"
     volumes:
       - ./:/app
       - $HOST_ARTIFACTS:$HOST_ARTIFACTS
-    stop_signal: SIGINT
-    stop_grace_period: 5s
+    network_mode: host
+    command: bash -lc "pytest -q"
