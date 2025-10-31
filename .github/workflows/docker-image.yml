@@ -3,15 +3,40 @@ name: Docker CI
 on:
   push:
     branches: [ "main" ]
-    tags: [ "v*.*.*" ]   # push images when you cut a release tag
+    tags: [ "v*.*.*" ]
+    # Start workflow only when relevant files change
     paths:
-      - "**"
-      - ".github/workflows/docker-image.yml"
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker/**'
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+      - 'poetry.lock'
+      - 'Pipfile'
+      - 'Pipfile.lock'
+      - 'core/**'
+      - 'config/**'
+      - 'pages/**'
+      - 'utils/**'
+      - 'tests/**'
+      - '.github/workflows/docker.yml'
   pull_request:
     branches: [ "main" ]
     paths:
-      - "**"
-      - ".github/workflows/docker-image.yml"
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker/**'
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+      - 'poetry.lock'
+      - 'Pipfile'
+      - 'Pipfile.lock'
+      - 'core/**'
+      - 'config/**'
+      - 'pages/**'
+      - 'utils/**'
+      - 'tests/**'
+      - '.github/workflows/docker.yml'
   workflow_dispatch:
 
 # Cancel in-flight runs of the same branch/PR
@@ -21,16 +46,66 @@ concurrency:
 
 permissions:
   contents: read
-  packages: write    # needed for GHCR push
-  id-token: write    # enables provenance/SBOM attestation
+  packages: write
+  id-token: write
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # Detect what changed (so we can skip builds without failing)
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      docker: ${{ steps.filter.outputs.docker }}
+      app: ${{ steps.filter.outputs.app }}
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Paths filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          list-files: shell
+          filters: |
+            docker:
+              - 'Dockerfile'
+              - '.dockerignore'
+              - 'docker/**'
+            app:
+              - 'pyproject.toml'
+              - 'requirements*.txt'
+              - 'poetry.lock'
+              - 'Pipfile'
+              - 'Pipfile.lock'
+              - 'core/**'
+              - 'config/**'
+              - 'pages/**'
+              - 'utils/**'
+              - 'tests/**'
+            relevant:
+              - 'Dockerfile'
+              - '.dockerignore'
+              - 'docker/**'
+              - 'pyproject.toml'
+              - 'requirements*.txt'
+              - 'poetry.lock'
+              - 'Pipfile'
+              - 'Pipfile.lock'
+              - 'core/**'
+              - 'config/**'
+              - 'pages/**'
+              - 'utils/**'
+              - 'tests/**'
+
+  # Build and test only when relevant files changed
   build-test:
     name: Build (no push)
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -65,11 +140,25 @@ jobs:
           provenance: true
           sbom: true
 
+  # Friendly “no-op” job so the workflow passes when nothing relevant changed
+  no-changes:
+    name: Skip (no relevant changes)
+    needs: changes
+    if: needs.changes.outputs.relevant != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "No Docker/app changes detected. Skipping build and publish."
+          echo "Changed sets:"
+          echo "  docker:  ${{ needs.changes.outputs.docker }}"
+          echo "  app:     ${{ needs.changes.outputs.app }}"
+
   publish:
     name: Build & Push
     needs: build-test
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'   # only push on main or tags
+    # only push on non-PR events AND when relevant changes exist
+    if: github.event_name != 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -91,9 +180,9 @@ jobs:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Push branch tags for main commits
+            # Tag for branch commits (e.g., main)
             type=ref,event=branch,enable=${{ startsWith(github.ref, 'refs/heads/') }}
-            # Push semver tags for releases like v1.2.3 -> 1.2.3, 1.2, 1
+            # Semver tags for releases (v1.2.3 -> 1.2.3, 1.2, 1)
             type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=semver,pattern={{major}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
