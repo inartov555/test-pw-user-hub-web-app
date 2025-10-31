@@ -55,7 +55,7 @@ def _launch(pw, name: str) -> Browser:
     """
     Launch a browser engine by name with the configured headless setting.
     """
-    headless = settings.headless
+    headless = False
     if name == "chromium":
         return pw.chromium.launch(headless=headless)
     if name == "firefox":
@@ -101,7 +101,7 @@ def base_url_fixture() -> str:
     """
     Application base URL under test (stripped of trailing slash).
     """
-    return settings.base_url.rstrip("/")
+    return "http://localhost:5173/"
 
 
 def _state_file(username: str) -> pathlib.Path:
@@ -187,16 +187,6 @@ def logged_in_admin(browser: Browser, storage_state_admin: str) -> Generator[Pag
     install_time_travel(page)
     yield page
     ctx.close()
-
-
-@pytest.fixture()
-def expire_session(page: Page):
-    """
-    Advance logical time beyond SESSION_MINUTES to force auth expiry.
-    """
-    def _go():
-        advance_minutes(page, settings.session_minutes + 1)
-    return _go
 
 
 @pytest.fixture()
