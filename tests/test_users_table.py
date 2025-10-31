@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 import pytest
 from playwright.sync_api import expect
+
 from pages.users_table_page import UsersTablePage
+
 
 @pytest.mark.smoke
 def test_users_table_visible_for_logged_in_user(base_url, logged_in_regular1):

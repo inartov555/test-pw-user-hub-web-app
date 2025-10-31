@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from playwright.sync_api import Page, expect
+
 
 class Toast:
     def __init__(self, page: Page) -> None:

@@ -7,7 +7,12 @@ import logging
 import logging.config
 import yaml
 
+
 load_dotenv()
+
+LOG_DIR = os.path.join(os.getcwd(), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -15,11 +20,8 @@ class Settings:
     session_minutes: int = int(os.getenv("SESSION_MINUTES", "30"))
     headless: bool = os.getenv("HEADLESS", "1") == "1"
 
-settings = Settings()
 
-# Configure Django-style logging via YAML
-LOG_DIR = os.path.join(os.getcwd(), "logs")
-os.makedirs(LOG_DIR, exist_ok=True)
+settings = Settings()
 
 with open(os.path.join(os.path.dirname(__file__), "logging.yaml"), "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)

@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from playwright.sync_api import Page
+
 
 class Header:
     """Represents the top navigation bar."""

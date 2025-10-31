@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 USERS = {
     "regular1": {"username": "test1", "password": "megaboss19", "role": "user"},
     "regular2": {"username": "test28", "password": "megaboss19", "role": "user"},

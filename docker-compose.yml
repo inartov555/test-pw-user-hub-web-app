@@ -1,13 +1,4 @@
-version: "3.9"
+version: "3.12"
 services:
   tests:
-    build: .
-    environment:
-      - BASE_URL=${BASE_URL:-http://host.docker.internal:5173}
-      - SESSION_MINUTES=${SESSION_MINUTES:-30}
-      - HEADLESS=${HEADLESS:-1}
-    shm_size: 2gb
-    volumes:
-      - ./:/workspace
-    working_dir: /workspace
-    command: ["bash", "-lc", "pytest -n auto -q --video=retain-on-failure --tracing=retain-on-failure"]
+    network_mode: host

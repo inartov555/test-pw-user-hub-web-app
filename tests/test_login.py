@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import pytest
 from playwright.sync_api import expect
+
 from pages.login_page import LoginPage
 from utils.test_data import USERS, VALIDATION
+
 
 @pytest.mark.smoke
 def test_login_success_regular(base_url, page):

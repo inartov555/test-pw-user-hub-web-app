@@ -1,10 +1,13 @@
 from __future__ import annotations
 import time
+
 import pytest
 from playwright.sync_api import expect
+
 from pages.signup_page import SignupPage
 from pages.login_page import LoginPage
 from utils.test_data import VALIDATION, USERS
+
 
 @pytest.mark.regression
 def test_signup_happy_path_then_login(base_url, page):
