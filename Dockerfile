@@ -29,4 +29,3 @@ EXPOSE 8000
 # To run Django instead, override at runtime:
 # docker run --rm -p 8000:8000 IMAGE python manage.py runserver 0.0.0.0:8000
 CMD ["bash", "-lc", "pytest -q"]
-check GitHub docker action, if it's conrigured correctly and really works
