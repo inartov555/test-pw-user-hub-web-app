@@ -5,14 +5,16 @@ File utilities
 import os
 from datetime import datetime
 
-from tools.logger.logger import Logger
+from utils.logger.logger import Logger
+
+
+log = Logger(__name__)
 
 
 class FileUtils:
     """
     File utilities
     """
-    log = Logger(__name__)
 
     @classmethod
     def timestamped_path(cls, file_name, file_ext, path_to_file=os.getenv("HOST_ARTIFACTS")):
@@ -24,7 +26,7 @@ class FileUtils:
         """
         ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S.%f")
         screenshot_path = os.path.join(path_to_file, f"{file_name}-{ts}.{file_ext}")
-        cls.log.info(f"Screenshot path: {screenshot_path}")
+        log.info(f"Screenshot path: {screenshot_path}")
         return screenshot_path
 
     @staticmethod
