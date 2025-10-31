@@ -32,6 +32,6 @@ class Header:
         try:
             if self.logout_button.is_visible():
                 self.logout_button.click()
-        except Exception:
+        except TimeoutError:
             # Allow tests to proceed if the control isn't present in a given build.
             pass

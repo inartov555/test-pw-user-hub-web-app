@@ -82,7 +82,7 @@ class LoginPage(BasePage):
         if remember is True:
             try:
                 self.remember_me.check()
-            except Exception:
+            except TimeoutError:
                 # Checkbox may be absent on some variants; ignore.
                 pass
         self.login_btn.click()

@@ -3,11 +3,10 @@ conftest.py
 """
 
 from __future__ import annotations
-import os
 import pathlib
-import pytest
 from typing import Generator
 
+import pytest
 from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page
 
 from config.settings import settings
@@ -60,15 +59,15 @@ def context_fixture(browser: Browser, request) -> Generator[BrowserContext, None
 @pytest.fixture(name="page")
 def page_fixture(context: BrowserContext) -> Generator[Page, None, None]:
     """
-    Getting a new page
+    Provide an authenticated Playwright page.
     """
     page = context.new_page()
     install_time_travel(page)
     yield page
 
 
-@pytest.fixture(scope="session")
-def base_url() -> str:
+@pytest.fixture(name="base_url", scope="session")
+def base_url_fixture() -> str:
     """
     Base URL under test.
     """
@@ -85,8 +84,8 @@ def _perform_login(page: Page, base_url: str, username: str, password: str) -> N
     lp.login(username, password)
 
 
-@pytest.fixture(scope="session")
-def storage_state_regular1(browser: Browser, base_url: str) -> str:
+@pytest.fixture(name="storage_state_regular1", scope="session")
+def storage_state_regular1_fixture(browser: Browser, base_url: str) -> str:
     state = _state_file("test1")
     if not state.exists():
         ctx = browser.new_context()
@@ -109,8 +108,8 @@ def storage_state_regular2(browser: Browser, base_url: str) -> str:
     return str(state)
 
 
-@pytest.fixture(scope="session")
-def storage_state_admin(browser: Browser, base_url: str) -> str:
+@pytest.fixture(name="storage_state_admin", scope="session")
+def storage_state_admin_fixture(browser: Browser, base_url: str) -> str:
     state = _state_file("admin")
     if not state.exists():
         ctx = browser.new_context()
@@ -159,6 +158,6 @@ def logout(page: Page):
     def _go():
         try:
             b.header().logout()
-        except Exception:
+        except TimeoutError:
             pass
     return _go

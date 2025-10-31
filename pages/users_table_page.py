@@ -62,7 +62,7 @@ class UsersTablePage(BasePage):
         """
         try:
             self.search.fill(text)
-        except Exception:
+        except TimeoutError:
             # Some variants may not expose a search box; ignore.
             pass
 
