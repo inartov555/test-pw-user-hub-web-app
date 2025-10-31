@@ -4,4 +4,3 @@ pytest-playwright>=0.5.7
 playwright>=1.48
 python-dotenv>=1.0
 pyyaml>=6.0
-Django>=5.0
