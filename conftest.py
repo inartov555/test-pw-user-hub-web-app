@@ -11,6 +11,8 @@ from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page
 
 from config.settings import settings
 from utils.time_travel import install_time_travel, advance_minutes
+from utils.temp_encr import decrypt
+from utils.logger.logger import Logger
 from utils.test_data import USERS
 from pages.login_page import LoginPage
 from pages.base_page import BasePage
@@ -23,6 +25,29 @@ BROWSERS = ("chromium", "firefox", "webkit")
 
 STATE_DIR = ARTIFACTS / "storage"
 STATE_DIR.mkdir(parents=True, exist_ok=True)
+
+log = Logger(__name__)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def add_loggers():
+    """
+    The fixture to configure loggers
+    It uses built-in pytest arguments to configure loggigng level and files
+
+    Parameters:
+        log_level or --log-level general log level for capturing
+        log_file_level or --log-file-level  level of log to be stored to a file. Usually lower than general log
+        log_file or --log-file  path where logs will be saved
+    """
+    artifacts_folder_default = os.getenv("HOST_ARTIFACTS")
+    log_level = "DEBUG"
+    log_file_level = "DEBUG"
+    log_file = os.path.join(FileUtils.timestamped_path("pytest", "log", artifacts_folder_default))
+    log.setup_cli_handler(level=log_level)
+    log.setup_filehandler(level=log_file_level, file_name=log_file)
+    log.info(f"General loglevel: '{log_level}', File: '{log_file_level}'")
+    log.info(f"Test logs will be stored: '{log_file}'")
 
 
 def _launch(pw, name: str) -> Browser:
