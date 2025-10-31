@@ -18,5 +18,5 @@ RUN --mount=type=cache,target=.cache/pip \
 RUN chown -R pwuser:pwuser /tests
 USER pwuser
 
-# Default behavior: run the tests suite.
-CMD ["bash", "-lc", "pytest -q"]
+# Default behavior: run the tests suite with a virtual display
+CMD ["bash", "-lc", "xvfb-run -a pytest -q"]
