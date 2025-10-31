@@ -1,11 +1,14 @@
-"""Django-style logging setup for tests."""
-import logging, logging.config, os, yaml
+"""Centralized logging using Loguru, with per-test file logs."""
+import os
+from loguru import logger
+import pytest
 
-def setup_logging():
-    cfg = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "config", "logging.yaml")
-    with open(cfg, "r") as f:
-        conf = yaml.safe_load(f)
-    logging.config.dictConfig(conf)
+def configure_logger() -> None:
+    os.makedirs("logs", exist_ok=True)
+    logger.remove()
+    logger.add("logs/automation.log", rotation="5 MB", retention=5, level="INFO", enqueue=True)
 
-setup_logging()
-logger = logging.getLogger("e2e")
+@pytest.fixture(autouse=True, scope="session")
+def _setup_logging():
+    configure_logger()
+    yield

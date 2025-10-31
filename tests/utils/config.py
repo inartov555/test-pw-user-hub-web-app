@@ -1,43 +1,35 @@
-"""Configuration loader for E2E tests.
-
-Reads environment variables (from .env if present) and config.yaml, resolves defaults,
-and provides a simple dataclass-like object for access.
-"""
+"""Test configuration helpers and typed settings."""
 from __future__ import annotations
-import os, yaml
-from dataclasses import dataclass
-from dotenv import load_dotenv
+from pydantic import BaseModel, Field
+import pytest
 
-load_dotenv(override=True)
+class Settings(BaseModel):
+    base_url: str = Field(default="http://localhost:5173")
+    login_path: str = Field(default="/login")
+    admin_user: str = Field(default="admin")
+    admin_pass: str = Field(default="changeme123")
+    user1: str = Field(default="test1")
+    user1_pass: str = Field(default="megaboss19")
+    user2: str = Field(default="test28")
+    user2_pass: str = Field(default="megaboss19")
+    browsers: list[str] = Field(default_factory=lambda: ["chromium","firefox","webkit"])
+    headed: bool = False
+    video: bool = False
+    trace: bool = False
 
-def env_bool(x: str|None, default: bool=False) -> bool:
-    if x is None: return default
-    return str(x).lower() in {"1","true","yes","on"}
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption("--base-url", action="store", default="http://localhost:5173", help="Base URL for the app") 
+    parser.addoption("--browser-list", action="store", default="chromium,firefox,webkit", help="Comma-separated list") 
+    parser.addoption("--headed", action="store_true", default=False, help="Run headed") 
+    parser.addoption("--video", action="store", choices=["on","off"], default="off", help="Record video") 
+    parser.addoption("--trace", action="store", choices=["on","off"], default="off", help="Playwright trace") 
 
-@dataclass
-class Settings:
-    base_url: str
-    api_url: str
-    headless: bool
-    browsers: list[str]
-    default_locale: str
-    slowmo_ms: int
-    trace: str
-    video: str
-    screenshot: str
-
-def load_settings() -> Settings:
-    cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "config", "config.yaml")
-    with open(cfg_path, "r") as f:
-        raw = yaml.safe_load(os.path.expandvars(f.read()))
+@pytest.fixture(scope="session")
+def settings(pytestconfig: pytest.Config) -> Settings:
     return Settings(
-        base_url=raw.get("base_url", "http://localhost:5173"),
-        api_url=raw.get("api_url", "http://localhost:8000/api/v1"),
-        headless=env_bool(str(raw.get("headless","true")), True),
-        browsers=[x.strip() for x in str(raw.get("browsers","chromium")).split(",") if x.strip()],
-        default_locale=str(raw.get("default_locale","en-US")),
-        slowmo_ms=int(raw.get("slowmo_ms", 0)),
-        trace=str(raw.get("trace","retain-on-failure")),
-        video=str(raw.get("video","off")),
-        screenshot=str(raw.get("screenshot","off")),
+        base_url=str(pytestconfig.getoption("--base-url")),
+        browsers=[s.strip() for s in str(pytestconfig.getoption("--browser-list")).split(",") if s.strip()],
+        headed=bool(pytestconfig.getoption("--headed")),
+        video= str(pytestconfig.getoption("--video")) == "on",
+        trace= str(pytestconfig.getoption("--trace")) == "on",
     )

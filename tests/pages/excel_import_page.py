@@ -1,20 +1,17 @@
-"""Excel import page object for seeding test users."""
+"""Excel import page object (admin-only)."""
 from __future__ import annotations
+from pathlib import Path
 from playwright.sync_api import Page, expect
-from .base import BasePage
+from .base_page import BasePage
 
 class ExcelImportPage(BasePage):
     path = "/import-excel"
-    def open(self):
-        self.goto(self.path)
-        expect(self.page.get_by_role("heading", name="Import from Excel")).to_be_visible()
 
-    def download_template(self):
-        with self.page.expect_download() as dl:
-            self.page.get_by_role("button", name="Download template").click()
-        return dl.value
+    def open(self, base_url: str) -> None:
+        self.goto(base_url + self.path)
+        expect(self.page.get_by_role("heading", name=lambda n: "Import" in n)).to_be_visible()
 
-    def upload_file(self, filepath: str):
-        self.page.set_input_files('input[type="file"]', filepath)
-        self.page.get_by_role("button", name="Upload").click()
-        expect(self.page.get_by_text("imported")).to_be_visible()
+    def upload_file(self, xlsx: Path) -> None:
+        self.page.set_input_files("input[type=file]", str(xlsx))
+        self.page.get_by_role("button", name=lambda n: "Upload" in n or "Import" in n).click()
+        expect(self.page.get_by_text("Success", exact=False)).to_be_visible()

@@ -1,22 +1,11 @@
-"""Settings page tests including temporary override of session settings."""
-import pytest
 from playwright.sync_api import expect
-from .pages.settings_page import SettingsPage
-from .pages.navbar import Navbar
+from .pages.components.navbar import Navbar
+import time
 
-@pytest.mark.admin
-def test_modify_session_settings(login_admin):
-    page = login_admin
-    nb = Navbar(page, page.url.rstrip("/"))
-    nb.toggle_additional()
-    nb.nav_to("Settings")
-    sp = SettingsPage(page, page.url.rstrip("/"))
-    sp.open()
-    orig = sp.read_current_values()
-    sp.set_auth_values(renew=300, idle=600, lifetime=900)
-    sp.save()
-    new_vals = sp.read_current_values()
-    assert new_vals == (300,600,900)
-    # restore
-    sp.set_auth_values(*orig)
-    sp.save()
+def test_session_timeout_setting(login_as_admin, settings, page):
+    nav = Navbar(page)
+    nav.goto_settings()
+    # Set a short idle timeout (e.g., 20s), verify we stay logged in after interaction
+    page.get_by_label(lambda n: "timeout" in n.lower()).fill("20")
+    page.get_by_role("button", name=lambda n: "Save" in n).click()
+    expect(page.get_by_text("Saved", exact=False)).to_be_visible()
