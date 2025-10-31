@@ -10,7 +10,6 @@ import os
 import pytest
 from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page
 
-from config.settings import settings
 from utils.time_travel import install_time_travel, advance_minutes
 # from utils.temp_encr import decrypt
 from utils.logger.logger import Logger
