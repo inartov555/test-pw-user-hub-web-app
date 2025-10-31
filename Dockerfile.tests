@@ -1,7 +1,0 @@
-FROM mcr.microsoft.com/playwright/python:v1.48.0-focal
-WORKDIR /tests
-COPY pyproject.toml pytest.ini playwright.config.ts .env ./
-COPY docker/django-logging.ini docker/wait-for-it.sh ./docker/
-COPY tests ./tests
-COPY django_helpers ./django_helpers
-RUN pip install -U pip && pip install -e .

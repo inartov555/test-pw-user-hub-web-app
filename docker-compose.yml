@@ -1,32 +1,13 @@
 version: "3.9"
 services:
-  web:
-    build: .
-    command: python manage.py runserver 0.0.0.0:8000
-    ports: ["8000:8000"]
-    environment:
-      - DJANGO_SETTINGS_MODULE=project.settings
-    volumes:
-      - ./:/app
-
-  ui:
-    image: node:20
-    working_dir: /ui
-    command: bash -lc "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
-    ports: ["5173:5173"]
-    volumes:
-      - ./ui:/ui
-
   tests:
-    build:
-      context: .
-      dockerfile: Dockerfile.tests
+    build: .
     environment:
-      - CI=1
-    env_file: .env
-    depends_on:
-      - web
-      - ui
+      - BASE_URL=${BASE_URL:-http://host.docker.internal:5173}
+      - SESSION_MINUTES=${SESSION_MINUTES:-30}
+      - HEADLESS=${HEADLESS:-1}
+    shm_size: 2gb
     volumes:
-      - ./:/tests
-    entrypoint: ["bash", "-lc", "playwright install --with-deps && pytest -n auto --all-browsers"]
+      - ./:/workspace
+    working_dir: /workspace
+    command: ["bash", "-lc", "pytest -n auto -q --video=retain-on-failure --tracing=retain-on-failure"]

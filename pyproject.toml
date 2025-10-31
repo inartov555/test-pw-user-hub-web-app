@@ -1,25 +1,27 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-
-[tool.pytest.ini_options]
-addopts = "-q --maxfail=1 --disable-warnings"
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "qa-framework"
+name = "ui-tests"
 version = "0.1.0"
+description = "Playwright + Pytest POM UI tests"
+readme = "README.md"
+requires-python = ">=3.11"
 dependencies = [
-  "pytest>=8.3",
+  "pytest>=8.2",
   "pytest-xdist>=3.6",
-  "pytest-parallel>=0.1.1",
-  "pytest-playwright>=0.5.0",
-  "playwright>=1.48.0",
-  "pytest-html>=4.1.1",
-  "pytest-rerunfailures>=14.0",
-  "python-dotenv>=1.0.1",
-  "httpx>=0.27.2",
-  "pydantic>=2.9",
-  "Django>=5.1",
-  "django-environ>=0.11.2",
-  "structlog>=24.1.0",
-  "allure-pytest>=2.13.5"
+  "pytest-playwright>=0.5.7",
+  "playwright>=1.48",
+  "python-dotenv>=1.0",
+  "pyyaml>=6.0",
+  "Django>=5.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers --disable-warnings"
+markers = [
+  "smoke: fast confidence checks",
+  "regression: deeper coverage",
+  "access: role/permission scenarios",
 ]
