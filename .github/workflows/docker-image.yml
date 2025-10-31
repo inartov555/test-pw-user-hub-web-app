@@ -1,34 +1,116 @@
-name: Docker Image CI
+name: Docker CI
 
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*.*.*" ]   # push images when you cut a release tag
     paths:
-      - ".**"
+      - "**"
       - ".github/workflows/docker-image.yml"
   pull_request:
     branches: [ "main" ]
     paths:
-      - ".**"
+      - "**"
       - ".github/workflows/docker-image.yml"
   workflow_dispatch:
 
+# Cancel in-flight runs of the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write    # needed for GHCR push
+  id-token: write    # enables provenance/SBOM attestation
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  test:
-    name: Build image
+  build-test:
+    name: Build (no push)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build test (no push)
+      - name: Generate Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=pr
+            type=sha
+            type=raw,value=ci
+
+      - name: Build (no push)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: false
-          tags: ${{ github.repository }}:ci,${{ github.repository }}:sha-${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+  publish:
+    name: Build & Push
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'   # only push on main or tags
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # Push branch tags for main commits
+            type=ref,event=branch,enable=${{ startsWith(github.ref, 'refs/heads/') }}
+            # Push semver tags for releases like v1.2.3 -> 1.2.3, 1.2, 1
+            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=semver,pattern={{major}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # Always add immutable SHA tag
+            type=sha
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Build & Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
