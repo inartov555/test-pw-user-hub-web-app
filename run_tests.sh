@@ -12,12 +12,14 @@ set -Eeuo pipefail
 trap cleanup EXIT ERR SIGINT SIGTERM
 
 cleanup() {
-  echo "Deactivating venv, if active..."
   if [ -n "${VIRTUAL_ENV-}" ] && [ "$(type -t deactivate 2>/dev/null)" = "function" ]; then
+    echo "Deactivating venv..."
     deactivate
   fi
-  echo "Returning to the original project path to be able to run the test again with new changes, if there are any"
-  cd "$ORIGINAL_PROJECT_PATH"
+  if ! [[ "$ORIGINAL_PROJECT_PATH" -ef "$(pwd)" ]]; then
+    echo "Returning to the original project path to be able to run the test again with new changes, if there are any"
+    cd "$ORIGINAL_PROJECT_PATH"
+  fi
 }
 
 ORIGINAL_PROJECT_PATH="$(pwd)"
