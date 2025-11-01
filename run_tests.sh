@@ -8,21 +8,23 @@
 INI_CONFIG_FILE="${1:-pytest.ini}"
 clear_cache=${2:-false}
 
-ORIGINAL_PROJECT_PATH="$(pwd)"
-source ./setup.sh || { echo "setup.sh failed"; exit 1; }
-if [[ $? -ne 0 ]]; then
-  return 1
-fi
-
 set -Eeuo pipefail
 trap cleanup EXIT ERR SIGINT SIGTERM
 
 cleanup() {
   echo "Deactivating venv, if active..."
-  deactivate
+  if [ -n "${VIRTUAL_ENV-}" ] && [ "$(type -t deactivate 2>/dev/null)" = "function" ]; then
+    deactivate
+  fi
   echo "Returning to the original project path to be able to run the test again with new changes, if there are any"
   cd "$ORIGINAL_PROJECT_PATH"
 }
+
+ORIGINAL_PROJECT_PATH="$(pwd)"
+source ./setup.sh || { echo "setup.sh failed"; exit 1; }
+if [[ $? -ne 0 ]]; then
+  exit 1
+fi
 
 echo "Building images..."
 case "$clear_cache" in
@@ -40,7 +42,7 @@ esac
 
 if [[ ! -f "$INI_CONFIG_FILE" ]]; then
   echo "ERROR: Provided path '$INI_CONFIG_FILE' for the repo does not exist"
-  return 1
+  exit 1
 else
   echo "Using $INI_CONFIG_FILE ini config file"
 fi
