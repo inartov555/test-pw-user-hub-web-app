@@ -69,12 +69,13 @@ def _launch(pw, name: str) -> Browser:
 
 @pytest.fixture(scope="session")
 # def app_config(pytestconfig) -> AppConfig:
-def app_config(pytestconfig) -> None:
+# def app_config(pytestconfig) -> None:
+def app_config() -> None:
     """
     Set and get AppConfig from ini config
     """
     # ini_config_file = pytestconfig.getoption("--ini-config")
-    pass
+    return None
 
 
 @pytest.fixture(name="browser", params=BROWSERS, scope="session")
