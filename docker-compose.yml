@@ -12,4 +12,5 @@ services:
       - $HOST_ARTIFACTS:$HOST_ARTIFACTS
       - ./:/workspace/artifacts
     network_mode: host
-    command: bash -lc "pytest -q"
+    # command: bash -lc "pytest -q"
+    command: bash -lc "xvfb-run -a -s '-screen 0 1920x1080x24' pytest -q tests"

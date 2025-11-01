@@ -22,7 +22,8 @@ from pages.base_page import BasePage
 ARTIFACTS = pathlib.Path(".artifacts")
 ARTIFACTS.mkdir(exist_ok=True)
 
-BROWSERS = ("chromium", "firefox", "webkit")
+# BROWSERS = ("chromium", "firefox", "webkit")
+BROWSERS = ("chromium",)
 
 STATE_DIR = ARTIFACTS / "storage"
 STATE_DIR.mkdir(parents=True, exist_ok=True)
@@ -65,12 +66,24 @@ def _launch(pw, name: str) -> Browser:
     raise ValueError(name)
 
 
+@pytest.fixture(scope="session")
+# def app_config(pytestconfig) -> AppConfig:
+def app_config(pytestconfig) -> None:
+    """
+    Set and get AppConfig from ini config
+    """
+    ini_config_file = pytestconfig.getoption("--ini-config")
+
+
 @pytest.fixture(name="browser", params=BROWSERS, scope="session")
 def browser_fixture(request) -> Generator[Browser, None, None]:
     """
     Session-scoped Playwright Browser for each engine (runs in parallel with xdist).
     """
     with sync_playwright() as pw:
+        print(f"\n\n request.param {request.param} \n\n")
+        print(f"\n\n BROWSERS {BROWSERS} \n\n")
+        # print(f"\n\n params {params} \n\n")
         br = _launch(pw, request.param)
         yield br
         br.close()
@@ -101,7 +114,12 @@ def base_url_fixture() -> str:
     """
     Application base URL under test (stripped of trailing slash).
     """
-    return "http://localhost:5173/"
+    # return "http://127.0.0.1:5173/"
+    url = os.getenv("BASE_URL", "http://127.0.0.1:5173/")
+    # normalize
+    if not url.endswith("/"):
+        url = url + "/"
+    return url
 
 
 def _state_file(username: str) -> pathlib.Path:
