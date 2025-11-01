@@ -10,7 +10,8 @@ import os
 import pytest
 from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page
 
-from utils.time_travel import install_time_travel, advance_minutes
+# from utils.time_travel import install_time_travel, advance_minutes
+from utils.time_travel import install_time_travel
 # from utils.temp_encr import decrypt
 from utils.logger.logger import Logger
 from utils.file_utils import FileUtils
@@ -72,7 +73,8 @@ def app_config(pytestconfig) -> None:
     """
     Set and get AppConfig from ini config
     """
-    ini_config_file = pytestconfig.getoption("--ini-config")
+    # ini_config_file = pytestconfig.getoption("--ini-config")
+    pass
 
 
 @pytest.fixture(name="browser", params=BROWSERS, scope="session")
@@ -81,9 +83,6 @@ def browser_fixture(request) -> Generator[Browser, None, None]:
     Session-scoped Playwright Browser for each engine (runs in parallel with xdist).
     """
     with sync_playwright() as pw:
-        print(f"\n\n request.param {request.param} \n\n")
-        print(f"\n\n BROWSERS {BROWSERS} \n\n")
-        # print(f"\n\n params {params} \n\n")
         br = _launch(pw, request.param)
         yield br
         br.close()
